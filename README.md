@@ -1,1 +1,2 @@
-# Capstone
+# Capstone project
+Fighting!!
