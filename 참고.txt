@@ -1,7 +1,7 @@
-MySQL 설치
+MySQL download
 http://uslifelog.tistory.com/47
 
-android studio 설치
+android studio download
 http://webnautes.tistory.com/1126
 
 vodka site
