@@ -8,7 +8,7 @@ from itertools import count
 # 출력 파일 명
 VODKA_NAME_DB = 'VODKA_NAME_DB.txt'
 
-#
+##
 url = "https://drizly.com/vodka/c89"
 
 def main():    
