@@ -11,10 +11,7 @@ from hpd import HPD
 def main(args):
     filename = args["input_file"]
 
-    FACE_DOWNSAMPLE_RATIO = 2 #프레임 작게하기 **** 구현필요 ****
-                              # ㄴ> cv2.resize() 활용
-                              #참고링크:https://www.learnopencv.com/speeding-up-dlib-facial-landmark-detector/
-
+    RESIZE_RATIO = 2 #프레임 작게하기
     SKIP_FRAMES = 3 #프레임 건너뛰기: 3프레임마다 영상처리
                     #테스트하며 값 조정 필요
 
@@ -41,19 +38,34 @@ def main(args):
 
     count = 0
 
+    cv2.namedWindow('frame2', WINDOW_NORMAL)
+    cv2.resizeWindow('frame2', 320, 240)
+
     # time.sleep(2)
     while(cap.isOpened()):
         # Capture frame-by-frame
         print('\rframe: %d' % count, end='')
         ret, frame = cap.read()
 
-        # pretx = prety = pretz = '0.0'
+        h, w, c = frame.shape
+        new_h = h / RESIZE_RATIO
+        nwe_w = w / RESIZE_RATIO
+        frame_small = cv2.resize(frame, (new_w, new_h))
 
+        # pretx = prety = pretz = '0.0'
 
         if isVideo:
 
+            if frame is None:
+                break
+            else:
+                out.write(frame)
+
+        else:
+
             if (count % SKIP_FRAMES == 0):
-                frame, angles, tvec = hpd.processImage(frame)
+                frame = cv2.flip(frame_small, 1)
+                frame, angles, tvec = hpd.processImage(frame_small)
                 print("\ntvec:\n {0}".format(tvec))
                 tx, ty, tz = tvec[:, 0]
                 print('getTvec tx: %s' % tx)
@@ -65,46 +77,34 @@ def main(args):
                 continue
 
 
-            if frame is None:
-                break
-            else:
+             if (pretx == '0.0' and prety == '0.0' and
+                 pretz == '0.0'):
 
-##                if (pretx == '0.0' and prety == '0.0' and
-##                    pretz == '0.0'):
-##
-##                    pretx = tx
-##                    prety = ty
-##                    pretz = tz
-##                else:
-##                    arduino.write("rx")
-##                    arduino.write(-rx)
-##                    arduino.write("ry")
-##                    arduino.write(-ry)
-##                    arduino.write("rz")
-##                    arduino.write(-rz)
-##                    arduino.write("tx")
-##                    arduino.write(tx-pretx)
-##                    arduino.write("ty")
-##                    arduino.write(ty-prety)
-##                    arduino.write("tz")
-##                    arduino.write(tz-pretz)
-##
-##                    time.sleep(0.1)
-##
-##                    pretx = tx
-##                    prety = ty
-##                    pretz = tz
-##
-                out.write(frame)
+                 pretx = tx
+                 prety = ty
+                 pretz = tz
+             else:
+                 arduino.write("rx")
+                 arduino.write(-rx)
+                 arduino.write("ry")
+                 arduino.write(-ry)
+                 arduino.write("rz")
+                 arduino.write(-rz)
+                 arduino.write("tx")
+                 arduino.write(tx-pretx)
+                 arduino.write("ty")
+                 arduino.write(ty-prety)
+                 arduino.write("tz")
+                 arduino.write(tz-pretz)
 
+                 time.sleep(0.1)
 
-        else:
-            frame = cv2.flip(frame, 1)
-            frame, angles , tvec = hpd.processImage(frame)
-##            frame, angles = hpd.processImage(frame)
+                 pretx = tx
+                 prety = ty
+                 pretz = tz
 
             # Display the resulting frame
-            cv2.imshow('frame',frame)
+            cv2.imshow('frame2',frame_small)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 

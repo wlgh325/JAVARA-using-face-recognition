@@ -1,11 +1,3 @@
-#
-#   Headpose Detection
-#   Referenced code:
-#       https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib
-#       https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python
-#       https://github.com/lincolnhard/head-pose-estimation
-#   Modified by Qhan
-#
 
 import os
 import os.path as osp
@@ -19,6 +11,7 @@ from draw import Draw
 
 t = Timer()
 
+# HeadPoseDetection
 class HPD():
 
     # 3D facial model coordinates
@@ -29,7 +22,7 @@ class HPD():
             [-5.625,  4.250,  -3.375],    # Left eye left corner
             [ 5.625,  4.250,  -3.375],    # Right eye right corner
             [-3.750, -3.750,  -3.125],    # Left Mouth corner
-            [ 3.750, -3.750,  -3.125]     # Right mouth corner 
+            [ 3.750, -3.750,  -3.125]     # Right mouth corner
         ], dtype=np.double),
         np.array([
             [ 0.000000,  0.000000,  6.763430],   # 52 nose bottom edge
@@ -115,13 +108,13 @@ class HPD():
              [0, f, v0],
              [0, 0, 1]], dtype = np.double
          )
-         
+
         # Assuming no lens distortion
-        dist_coeffs = np.zeros((4,1)) 
+        dist_coeffs = np.zeros((4,1))
 
         # Find rotation, translation
         (success, rotation_vector, translation_vector) = cv2.solvePnP(self.landmarks_3d, landmarks_2d, camera_matrix, dist_coeffs)
-        
+
         if (verbose==False):
             print("Camera Matrix:\n {0}".format(camera_matrix))
             print("Distortion Coefficients:\n {0}".format(dist_coeffs))
@@ -138,7 +131,7 @@ class HPD():
         degrees = -cv2.decomposeProjectionMatrix(P)[6]
         print("\ndegrees:\n {0}".format(degrees))
         rx, ry, rz = degrees[:, 0]
-        return [rx, ry, rz]    
+        return [rx, ry, rz]
 
 
     # return image and angles
@@ -164,8 +157,8 @@ class HPD():
         t.tic()
         angles = self.getAngles(rvec, tvec)
         rx, ry, rz = angles
-        
-      
+
+
         if self.v: print(', ga: %.2f' % t.toc(), end='ms')
 
         if draw:
@@ -173,7 +166,7 @@ class HPD():
             draw = Draw(im, angles, bbox, landmarks_2d, rvec, tvec, cm, dc, b=10.0)
             im = draw.drawAll()
             if self.v: print(', draw: %.2f' % t.toc(), end='ms' + ' ' * 10)
-         
+
         return im, angles, tvec
 
 
@@ -186,7 +179,7 @@ def main(args):
 
     for filename in os.listdir(in_dir):
         name, ext = osp.splitext(filename)
-        if ext in ['.jpg', '.png', '.gif', '.jpeg']: 
+        if ext in ['.jpg', '.png', '.gif', '.jpeg']:
             print("> image:", filename, end='')
             image = cv2.imread(in_dir + filename)
             res, angles, tvec = hpd.processImage(image)
@@ -202,7 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', metavar='DIR', dest='input_dir', default='images/')
     parser.add_argument('-o', metavar='DIR', dest='output_dir', default='res/')
     parser.add_argument('-lt', metavar='N', dest='landmark_type', type=int, default=1, help='Landmark type.')
-    parser.add_argument('-lp', metavar='FILE', dest='landmark_predictor', 
+    parser.add_argument('-lp', metavar='FILE', dest='landmark_predictor',
                         default='model/shape_predictor_68_face_landmarks.dat', help="Landmark predictor data file.")
     args = vars(parser.parse_args())
 
