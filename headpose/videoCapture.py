@@ -64,7 +64,8 @@ def main(args):
         else:
 
             if (count % SKIP_FRAMES == 0):
-                frame = cv2.flip(frame_small, 1)
+                frame = cv2.flip(frame_small, 1) # 좌우반전: 카메라 거울상
+                frame = cv2.flip(frame_small, 0) # 상하반전
                 frame, angles, tvec = hpd.processImage(frame_small)
                 print("\ntvec:\n {0}".format(tvec))
                 tx, ty, tz = tvec[:, 0]
