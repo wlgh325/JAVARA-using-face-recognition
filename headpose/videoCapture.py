@@ -3,8 +3,8 @@ import numpy as np
 import cv2
 import argparse
 import os.path as osp
-# import serial
-# import time
+import serial
+import time
 from hpd import HPD
 
 
@@ -52,7 +52,7 @@ def main(args):
         nwe_w = w / RESIZE_RATIO
         frame_small = cv2.resize(frame, (new_w, new_h))
 
-        # pretx = prety = pretz = '0.0'
+        pretx = prety = pretz = '0.0'
 
         if isVideo:
 
@@ -67,13 +67,13 @@ def main(args):
                 frame = cv2.flip(frame_small, 1) # 좌우반전: 카메라 거울상
                 frame = cv2.flip(frame_small, 0) # 상하반전
                 frame, angles, tvec = hpd.processImage(frame_small)
-                print("\ntvec:\n {0}".format(tvec))
+                # print("\ntvec:\n {0}".format(tvec))
                 tx, ty, tz = tvec[:, 0]
-                print('getTvec tx: %s' % tx)
-                print('getTvec ty: %s' % ty)
-                print('getTvec tz: %s' % tz)
+                # print('getTvec tx: %s' % tx)
+                # print('getTvec ty: %s' % ty)
+                # print('getTvec tz: %s' % tz)
                 rx, ry, rz = angles
-                tx, ty, tz = tvec[:, 0]
+                
             else:
                 continue
 
