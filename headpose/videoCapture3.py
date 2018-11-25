@@ -50,6 +50,8 @@ def main(args):
 
     cv2.namedWindow('frame2', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('frame2', 320, 240)
+    cv2.namedWindow('resultFrame', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('resultFrame', 320, 240)
 
     
     while(cap.isOpened()):
@@ -75,7 +77,9 @@ def main(args):
                 out.write(frame)
 
         else:
-##            //cv2.imshow('frame3',frame_small3)
+            cv2.imshow('frame2',frame_small3)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
             if (count % SKIP_FRAMES == 0):               
                 frameOut, angles, tvec = hpd.processImage(frame_small3)
@@ -89,13 +93,10 @@ def main(args):
                     tx, ty, tz = tvec[:, 0]
                     rx, ry, rz = angles
 
-
-
                     
                     # xy angle
                     # tz: : x angle, tx: y angle
-                    temp_z = int(tz) + default_xAngle   #temp_z: x angle
-                    
+                    temp_z = int(tz) + default_xAngle   #temp_z: x angle                    
                     
                     xy_angle = str(temp_z) + delimiter + str(int(tx))
                     xy_angle = xy_angle.encode('utf-8')
@@ -116,26 +117,14 @@ def main(args):
                     xy_arduino.write(xy_angle)
                     
                     # servo_arduino.write(tempAngle)
-                    #z_arduino.write(y_angle)
-                    
-                    count += 1
+                    #z_arduino.write(y_angle)                    
                     time.sleep(5)
             
             else:
-                count += 1
                 pass
 
-
-            if (pretx == '0.0' and prety == '0.0' and pretz == '0.0'):
-                pretx = tx
-                prety = ty
-                pretz = tz
-            else:
-                pretx = tx
-                prety = ty
-                pretz = tz
             # Display the resulting frame
-            cv2.imshow('frame2',frameOut)
+            cv2.imshow('resultFrame',frameOut)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
