@@ -9,6 +9,7 @@ from hpd import HPD
 
 default_servoAngle = 90
 default_xAngle = 60
+delimiter = "/"
 def main(args):
     filename = args["input_file"]
 
@@ -50,7 +51,7 @@ def main(args):
     cv2.namedWindow('frame2', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('frame2', 320, 240)
 
-    # time.sleep(2)
+    
     while(cap.isOpened()):
         # Capture frame-by-frame
         print('\rframe: %d' % count, end='')
@@ -65,7 +66,7 @@ def main(args):
 
         pretx = prety = pretz = '0.0'
         tx = ty = tz = '0.0'
-
+        
         if isVideo:
 
             if frame is None:
@@ -87,6 +88,19 @@ def main(args):
                 else:
                     tx, ty, tz = tvec[:, 0]
                     rx, ry, rz = angles
+
+
+
+                    
+                    # xy angle
+                    # tz: : x angle, tx: y angle
+                    temp_z = int(tz) + default_xAngle   #temp_z: x angle
+                    
+                    
+                    xy_angle = str(temp_z) + delimiter + str(int(tx))
+                    xy_angle = xy_angle.encode('utf-8')
+                    print("\n\n\nstr_tx: ", xy_angle)
+                    
                     ry = round(ry)
                     servo_angle = servo_angle + ry
                     tempAngle = str(servo_angle)
@@ -97,28 +111,13 @@ def main(args):
                     
                     print("\ntx: ",tx, "\nty: ", ty,"\ntz: ", tz)
                     
-                    #xy_arduino.write(X)
-                    #xy_arduino.write(tz)
-                    #xy_arduino.write(Y)
                     
-                    temp_x = int(tx)
-                    temp_x = str(temp_x)
-                    print("\n\n\nstr_tx: ", temp_x)
-                    temp_x = temp_x.encode('utf-8')
+                    # write XY angle
+                    xy_arduino.write(xy_angle)
                     
-                    
-                    temp_z = int(tz) + default_xAngle
-                    temp_z = str(temp_z)
-                    print("\n\n\nstr_tx: ", temp_z)
-                    temp_z = temp_z.encode('utf-8')
-                    
-                    #y 축돌리기
-                    xy_arduino.write(temp_x)
-                    
-                    #xy_arduino.write(y_angle) #x 축돌리
                     # servo_arduino.write(tempAngle)
                     #z_arduino.write(y_angle)
-                    time.sleep(0.5)
+                    time.sleep(5)
             
             else:
                 count += 1
