@@ -117,6 +117,8 @@ def main(args):
                     
                     # servo_arduino.write(tempAngle)
                     #z_arduino.write(y_angle)
+                    
+                    count += 1
                     time.sleep(5)
             
             else:
