@@ -55,7 +55,7 @@ void loop(){
          sTemp_y = sCopy.substring(nGetIndex + 1);
       }
     
-      moveXYstep(sTemp_x, leng, 11, X);
+      moveXYstep(sTemp_x, leng, 8, X);
       moveXYstep(sTemp_y, leng, 8, Y);
   }
 
@@ -69,6 +69,8 @@ void loop(){
 void moveXYstep(String temp, int leng, int multiply, char axis) {
     int flag; //flag =0 일때 +각도 flag=1일때 -각도
     int angle = 0;
+    int small_angle = 40;
+    
     if(temp.substring(0,1).equals("-")){
         flag=1;
          angle = temp.substring(1).toInt();
@@ -79,27 +81,44 @@ void moveXYstep(String temp, int leng, int multiply, char axis) {
     }
     
     //string을 int형으로 변
-    angle*=multiply;
     if( angle > 3){
+      angle*=multiply;
       //step수에 맞게 변환
       angle = map(angle,0,360,0,2048);
-
+      small_angle = map(small_angle, 0,360,0,2048);
+       if( angle <= small_angle){
+          if(axis == 'Y')
+          {
+           stepper.setSpeed(4);
+          }
+          else{
+            stepper2.setSpeed(4);
+          }
+       }
+       else{
+         if(axis == 'Y')
+          {
+           stepper.setSpeed(10);
+          }
+          else{
+            stepper2.setSpeed(10);
+          }
+       }
+       Serial.print(angle);
       if(flag == 0){
-        if(axis == 'Y')
+          if(axis == 'Y')
           stepper.setStep(-angle);
         else if (axis == 'X'){
           stepper2.setStep(angle);  
         }
       }
       else if(flag == 1){
-        if(axis == 'Y'){
+          if(axis == 'Y'){
           stepper.setStep(angle);
         }
         else if (axis =='X')
           stepper2.setStep(-angle);
-      }
+        }
     }
     delay(500);
 }
-
-
