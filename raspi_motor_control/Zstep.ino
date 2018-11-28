@@ -6,7 +6,7 @@ String str="";
 
 void setup()
 {
-  stepper.setSpeed(15);
+  stepper.setSpeed(14);
   Serial.begin(9600);
 }
 
@@ -17,7 +17,9 @@ void loop()
     byte leng = Serial.readBytes(temp,4); //byte형태로 받아서 temp저장, 크기 반환
     int flag=0; //flag =0 일때 +각도 flag=1일때 -각도
     int i = 0;
-
+    int multiply = 45;
+    int angle = 0;
+    
     if(temp[0] == '-'){
         i=1;
         flag=1;
@@ -31,26 +33,27 @@ void loop()
     for(; i<leng; i++){
       str += temp[i];
     }
-
-    //string을 int형으로 변환
-    int angle = str.toInt();
-
-    //step수에 맞게 변환
-    angle = map(angle,0,360,0,2048);
     
-    if(flag == 0){
-      //angle만큼 정회전
-      stepper.setStep(angle);
+    //string을 int형으로 변환
+    angle = str.toInt();
+    if (angle > 3){
+      angle = angle * multiply;
+    
+      //step수에 맞게 변환
+      angle = map(angle,0,360,0,2048);
+    
+      if(flag == 0){
+        //angle만큼 정회전
+        stepper.setStep(-angle);
+      }
+      else if(flag == 1){
+        stepper.setStep(angle);
+      }
     }
-    else if(flag == 1){
-      Serial.write("11111111");
-      stepper.setStep(-angle);
-
-    }
+    delay(1000);    
   }
-  
+
   stepper.moveStep();
-  
   //다시 값 전달 받기 전에 str 초기화
   str="";
 }

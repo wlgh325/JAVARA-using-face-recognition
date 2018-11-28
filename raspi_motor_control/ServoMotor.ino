@@ -13,18 +13,16 @@ void setup(){
 void loop(){
   
   if(Serial.available()){
-    char temp[10];
+    char temp[5];
     byte leng = Serial.readBytes(temp,3);
     
     for(int i=0; i<leng; i++){
       str += temp[i];
     }
-    
+    Serial.print("1");
     int angle = str.toInt();
-    for(int i = 0;  i < angle; i++){
-      servo.write(i);
-      delay(15);
-    }
+    Serial.print(angle);
+    servo.write(angle);
     str="";
   }
 }
