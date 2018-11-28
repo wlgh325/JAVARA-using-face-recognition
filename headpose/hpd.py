@@ -5,6 +5,8 @@ import argparse
 import cv2
 import numpy as np
 import dlib
+import serial
+import time
 from timer import Timer
 from draw import Draw
 
@@ -177,13 +179,30 @@ def main(args):
     # Initialize head pose detection
     hpd = HPD(args["landmark_type"], args["landmark_predictor"])
 
+    arduino = serial.Serial('/dev/ttyUSB0', 9600)
+
     for filename in os.listdir(in_dir):
         name, ext = osp.splitext(filename)
         if ext in ['.jpg', '.png', '.gif', '.jpeg']:
             print("> image:", filename, end='')
             image = cv2.imread(in_dir + filename)
             res, angles, tvec = hpd.processImage(image)
-##            res, angles = hpd.processImage(image)
+            tx, ty, tz = tvec[:, 0]
+            rx, ry, rz = angles
+
+            arduino.write("rx")
+            arduino.write(-rx)
+            arduino.write("ry")
+            arduino.write(-ry)
+            arduino.write("rz")
+            arduino.write(-rz)
+            arduino.write("tx")
+            arduino.write(tx)
+            arduino.write("ty")
+            arduino.write(ty)
+            arduino.write("tz")
+            arduino.write(tz)
+            
             cv2.imwrite(out_dir + name + '_out.png', res)
         else:
             print("> skip:", filename, end='')
