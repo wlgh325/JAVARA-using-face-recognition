@@ -1,9 +1,16 @@
-import numpy as np
-import cv2
+# import the necessary packages
+from __future__ import print_function
+from imutils.video.pivideostream import PiVideoStream
+from imutils.video import FPS
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 import argparse
+import imutils
+import time
+import cv2
+import numpy as np
 import os.path as osp
 import serial
-import time
 import math
 from hpd import HPD
 
@@ -11,19 +18,23 @@ from hpd import HPD
 default_servoAngle = 90
 default_xAngle = 60
 delimiter = "/"
+RESIZE_RATIO = 1.4 #프레임 작게하기
+SKIP_FRAMES = 3 #프레임 건너뛰기
+                           
+
 def main(args):
     filename = args["input_file"]
 
-    RESIZE_RATIO = 2.45 #프레임 작게하기
-    SKIP_FRAMES = 6 #프레임 건너뛰기: 3프레임마다 영상처리
-                    #테스트하며 값 조정 필요
-
     if filename is None:
         isVideo = False
-        cap = cv2.VideoCapture(-1)
-        cap.set(3, 640)
-        cap.set(4, 480)
-
+        
+        # created a *threaded *video stream, allow the camera sensor to warmup,
+        # and start the FPS counter
+        print("[INFO] sampling THREADED frames from `picamera` module...")
+        vs = PiVideoStream().start()
+        time.sleep(2.0)
+        fps = FPS().start()
+        
     else:
         isVideo = True
         cap = cv2.VideoCapture(filename)
@@ -45,19 +56,18 @@ def main(args):
     servo_angle = default_servoAngle
     tempAngle = str(servo_angle)
     tempAngle = tempAngle.encode('utf-8')
-    servo_arduino.write(tempAngle)
+    #servo_arduino.write(tempAngle)
     
-    count = 0
+    #count = 0
 
     cv2.namedWindow('frame2', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('frame2', 320, 240)
 
     
-    while(cap.isOpened()):
+    while(vs.stopped == False):
         # Capture frame-by-frame
-##        count = count + 1
-        print('\rframe: %d' % count, end='')
-        ret, frame = cap.read()
+        print('\rframe: %d' % fps._numFrames, end='')
+        frame = vs.read()
 
         h, w, c = frame.shape
         new_h = (int)(h / RESIZE_RATIO)
@@ -66,8 +76,6 @@ def main(args):
         frame_small2 = cv2.flip(frame_small, 1) # 좌우반전: 카메라 거울상
         frame_small3 = cv2.flip(frame_small, 0) # 상하반전
 
-        pretx = prety = pretz = '0.0'
-        tx = ty = tz = '0.0'
         
         if isVideo:
 
@@ -77,14 +85,15 @@ def main(args):
                 out.write(frame)
 
         else:
-##            //cv2.imshow('frame3',frame_small3)
 
-            if (count % SKIP_FRAMES == 0):               
+            if (fps._numFrames % SKIP_FRAMES == 0):               
                 frameOut, angles, tvec = hpd.processImage(frame_small3)
                 if tvec==None:
-                    print('\rframe2: %d' % count, end='')        
+                    print('\rframe2: %d' % fps._numFrames, end='')        
                     print(" There is no face detected\n")
-                    count += 1
+                    
+                    fps.update()
+                    #count += 1
                     continue
                     
                 else:
@@ -107,7 +116,7 @@ def main(args):
                     z_angle = z_angle.encode('utf-8')
                     ry = int(ry)
                     
-                    if (abs(ry) <=10):
+                    if (abs(ry) <=15):
                         ry=0
                         
                     th1 = math.radians(ry)
@@ -120,46 +129,43 @@ def main(args):
                     tempAngle = str(servo_angle)
                     tempAngle = tempAngle.encode('utf-8')
                     
-                    #y_angle = str(int(ry) )
-                    #y_angle = y_angle.encode('utf-8')
-                    
                     print("\ntx: ",tx, "\nty: ", ty,"\ntz: ", tz)
                     
                     
                     print("\n\n\nry: ", ry)
+                    
                     # write XY angle
                     xy_arduino.write(xy_angle)
                     
                     # write Z angle
                     z_arduino.write(z_angle)
-                    
                     servo_arduino.write(tempAngle)
-                    time.sleep(5)
+                    time.sleep(3)
             
             else:
                 pass
 
-##
-##            if (pretx == '0.0' and prety == '0.0' and pretz == '0.0'):
-##                pretx = tx
-##                prety = ty
-##                pretz = tz
-##            else:
-##                pretx = tx
-##                prety = ty
-##                pretz = tz
-            
+
             # Display the resulting frame
+           
             cv2.imshow('frame2',frameOut)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-        count += 1
+##        count += 1
+        fps.update()
 
     # When everything done, release the capture
-    cap.release()
+    # stop the timer and display FPS information
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    
+    # do a bit of cleanup  
+    vs.stop()
     if isVideo: out.release()
     cv2.destroyAllWindows()
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -168,5 +174,11 @@ if __name__ == '__main__':
     parser.add_argument('-lt', metavar='N', dest='landmark_type', type=int, default=1, help='Landmark type.')
     parser.add_argument('-lp', metavar='FILE', dest='landmark_predictor',
                         default='model/shape_predictor_68_face_landmarks.dat', help="Landmark predictor data file.")
+    parser.add_argument("-n", "--num-frames", type=int, default=100,
+	help="# of frames to loop over for FPS test")
+    parser.add_argument("-d", "--display", type=int, default=-1,
+	help="Whether or not frames should be displayed")
     args = vars(parser.parse_args())
     main(args)
+
+
