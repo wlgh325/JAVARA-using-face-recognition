@@ -1,18 +1,21 @@
-
 import numpy as np
 import cv2
 import argparse
 import os.path as osp
 import serial
 import time
+import math
 from hpd import HPD
 
 
+default_servoAngle = 90
+default_xAngle = 60
+delimiter = "/"
 def main(args):
     filename = args["input_file"]
 
-    RESIZE_RATIO = 2 #프레임 작게하기
-    SKIP_FRAMES = 3 #프레임 건너뛰기: 3프레임마다 영상처리
+    RESIZE_RATIO = 2.45 #프레임 작게하기
+    SKIP_FRAMES = 6 #프레임 건너뛰기: 3프레임마다 영상처리
                     #테스트하며 값 조정 필요
 
     if filename is None:
@@ -34,26 +37,38 @@ def main(args):
     # Initialize head pose detection
     hpd = HPD(args["landmark_type"], args["landmark_predictor"])
 
-    arduino = serial.Serial('/dev/ttyUSB0', 9600)
-
+    xy_arduino = serial.Serial('/dev/ttyUSB0', 9600)
+    servo_arduino = serial.Serial('/dev/ttyACM1',9600)
+    z_arduino = serial.Serial('/dev/ttyACM0', 9600)
+    
+    # servo motor default angle
+    servo_angle = default_servoAngle
+    tempAngle = str(servo_angle)
+    tempAngle = tempAngle.encode('utf-8')
+    servo_arduino.write(tempAngle)
+    
     count = 0
 
-    cv2.namedWindow('frame2', WINDOW_NORMAL)
+    cv2.namedWindow('frame2', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('frame2', 320, 240)
 
-    # time.sleep(2)
+    
     while(cap.isOpened()):
         # Capture frame-by-frame
+##        count = count + 1
         print('\rframe: %d' % count, end='')
         ret, frame = cap.read()
 
         h, w, c = frame.shape
-        new_h = h / RESIZE_RATIO
-        nwe_w = w / RESIZE_RATIO
+        new_h = (int)(h / RESIZE_RATIO)
+        new_w = (int)(w / RESIZE_RATIO)
         frame_small = cv2.resize(frame, (new_w, new_h))
+        frame_small2 = cv2.flip(frame_small, 1) # 좌우반전: 카메라 거울상
+        frame_small3 = cv2.flip(frame_small, 0) # 상하반전
 
         pretx = prety = pretz = '0.0'
-
+        tx = ty = tz = '0.0'
+        
         if isVideo:
 
             if frame is None:
@@ -62,50 +77,80 @@ def main(args):
                 out.write(frame)
 
         else:
+##            //cv2.imshow('frame3',frame_small3)
 
-            if (count % SKIP_FRAMES == 0):
-                frame = cv2.flip(frame_small, 1) # 좌우반전: 카메라 거울상
-                frame = cv2.flip(frame_small, 0) # 상하반전
-                frame, angles, tvec = hpd.processImage(frame_small)
-                # print("\ntvec:\n {0}".format(tvec))
-                tx, ty, tz = tvec[:, 0]
-                # print('getTvec tx: %s' % tx)
-                # print('getTvec ty: %s' % ty)
-                # print('getTvec tz: %s' % tz)
-                rx, ry, rz = angles
-                
+            if (count % SKIP_FRAMES == 0):               
+                frameOut, angles, tvec = hpd.processImage(frame_small3)
+                if tvec==None:
+                    print('\rframe2: %d' % count, end='')        
+                    print(" There is no face detected\n")
+                    count += 1
+                    continue
+                    
+                else:
+                    tx, ty, tz = tvec[:, 0]
+                    rx, ry, rz = angles
+
+
+
+                    th = math.radians(servo_angle)
+                    # xy angle
+                    # tz: : x angle, tx: y angle
+                    temp_z = int(tz) + default_xAngle   #temp_z: x angle
+                    
+                    x_angle = math.sin(th)*temp_z + math.cos(th)*tx
+                    y_angle = math.cos(th)*temp_z + math.sin(th)*tx
+                    
+                    temp_y = int(ty)
+                    z_angle = str(temp_y)
+                    
+                    z_angle = z_angle.encode('utf-8')
+                    ry = int(ry)
+                    
+                    if (abs(ry) <=10):
+                        ry=0
+                        
+                    th1 = math.radians(ry)
+                    y_angle += int(math.tan(th1)* tz)
+                    
+                    xy_angle = str(int(x_angle)) + delimiter + str(int(y_angle))
+                    xy_angle = xy_angle.encode('utf-8')
+                    print("\n\n\nstr_tx: ", xy_angle)
+                    servo_angle = servo_angle + ry
+                    tempAngle = str(servo_angle)
+                    tempAngle = tempAngle.encode('utf-8')
+                    
+                    #y_angle = str(int(ry) )
+                    #y_angle = y_angle.encode('utf-8')
+                    
+                    print("\ntx: ",tx, "\nty: ", ty,"\ntz: ", tz)
+                    
+                    
+                    print("\n\n\nry: ", ry)
+                    # write XY angle
+                    xy_arduino.write(xy_angle)
+                    
+                    # write Z angle
+                    z_arduino.write(z_angle)
+                    
+                    servo_arduino.write(tempAngle)
+                    time.sleep(5)
+            
             else:
-                continue
+                pass
 
-
-             if (pretx == '0.0' and prety == '0.0' and
-                 pretz == '0.0'):
-
-                 pretx = tx
-                 prety = ty
-                 pretz = tz
-             else:
-                 arduino.write("rx")
-                 arduino.write(-rx)
-                 arduino.write("ry")
-                 arduino.write(-ry)
-                 arduino.write("rz")
-                 arduino.write(-rz)
-                 arduino.write("tx")
-                 arduino.write(tx-pretx)
-                 arduino.write("ty")
-                 arduino.write(ty-prety)
-                 arduino.write("tz")
-                 arduino.write(tz-pretz)
-
-                 time.sleep(0.1)
-
-                 pretx = tx
-                 prety = ty
-                 pretz = tz
-
+##
+##            if (pretx == '0.0' and prety == '0.0' and pretz == '0.0'):
+##                pretx = tx
+##                prety = ty
+##                pretz = tz
+##            else:
+##                pretx = tx
+##                prety = ty
+##                pretz = tz
+            
             # Display the resulting frame
-            cv2.imshow('frame2',frame_small)
+            cv2.imshow('frame2',frameOut)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
